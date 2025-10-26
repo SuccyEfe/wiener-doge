@@ -12,12 +12,19 @@
     .page{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:20px;overflow-y:auto;}
     .page.active{display:block;}
     h1{font-size:32px;text-align:center;margin:20px 0;color:#ffd700;}
+    h2{font-size:28px;text-align:center;margin:15px 0;color:#ffd700;}
     #wiener-img{width:180px;height:180px;margin:20px auto;display:block;border-radius:50%;object-fit:cover;cursor:pointer;}
     #wiener-img:active{transform:scale(0.95);}
     .stat{font-size:22px;text-align:center;margin:15px;background:rgba(255,215,0,0.1);padding:12px;border-radius:15px;}
     .btn{background:#ffd700;color:#000;padding:14px 20px;border:none;border-radius:20px;font-weight:bold;margin:8px;cursor:pointer;}
     .btn:disabled{opacity:0.5;}
     .nav{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:20px 0;}
+    .upgrade-item{margin:10px 0;padding:15px;background:rgba(255,255,255,0.1);border-radius:15px;}
+    .upgrade-item button{width:100%;margin-top:10px;}
+    .level-badge{background:#ffd700;color:#000;padding:5px 10px;border-radius:10px;font-size:18px;margin:10px 0;display:inline-block;}
+    #leaderboard-list{font-size:18px;line-height:1.5;}
+    #leaderboard-list li{background:rgba(255,215,0,0.1);margin:5px 0;padding:10px;border-radius:10px;}
+    #leaderboard-list li.me{background:rgba(0,255,0,0.2);}
   </style>
 </head>
 <body>
@@ -26,15 +33,367 @@
 
   <div id="home" class="page">
     <h1>WIENER DOGE</h1>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Dachshund_in_a_park.jpg/800px-Dachshund_in_a_park.jpg" 
+    <div class="level-badge">Level: <span id="level">1</span></div>
+    <img src="https://i.imgur.com/8pZ3i0E.png" 
          id="wiener-img" 
          onclick="tapWiener()"
          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjgwIiBmaWxsPSJ5ZWxsb3ciLz48dGV4dCB4PSI1MCIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9ImJsYWNrIj7wn5GBrDwvdGV4dD48L3N2Zz4='">
     <div class="stat">Points: <span id="points">0.0</span></div>
-    <div class="stat">Miners: <span id="miners">0</span></div>
+    <div class="stat">Miners: <span id="miners">0</span> (+<span id="miner-income">0</span>/s)</div>
     <div class="nav">
+      <button class="btn" onclick="showPage('upgrades')">Upgrades</button>
       <button class="btn" onclick="showPage('daily')">Daily</button>
       <button class="btn" onclick="showPage('refer')">Refer</button>
+      <button class="btn" onclick="showPage('shop')">Shop</button>
+      <button class="btn" onclick="showPage('spin')">Spin</button>
+      <button class="btn" onclick="showPage('leaderboard')">Leaderboard</button>
+    </div>
+  </div>
+
+  <div id="upgrades" class="page">
+    <h1>Upgrades</h1>
+    <div id="upgrades-list"></div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="daily" class="page">
+    <h1>Daily Check-in</h1>
+    <button class="btn" id="daily-btn" onclick="claimDaily()">Claim +10</button>
+    <div>Streak: <span id="streak">0</span></div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="refer" class="page">
+    <h1>Refer & Earn</h1>
+    <div id="referral-link">https://t.me/WienerClickerBot?start=ref_<span id="user-id"></span></div>
+    <button class="btn" onclick="copyReferral()">Copy Link</button>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="shop" class="page">
+    <h1>Shop</h1>
+    <div style="margin:10px;padding:15px;background:rgba(255,255,255,0.1);border-radius:15px;">
+      L1 Miner: 1000 → +50/day <button class="btn" onclick="buyMiner(1)">Buy</button>
+    </div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="spin" class="page">
+    <h1>Lucky Spin</h1>
+    <button class="btn" id="spin-btn" onclick="doSpin()">SPIN (100)</button>
+    <div id="spin-result" style="margin:20px;font-size:20px;color:#ffd700;"></div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="leaderboard" class="page">
+    <h1>Leaderboard</h1>
+    <ul id="leaderboard-list"></ul>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.ready();
+
+    // Game state
+    let game = { 
+      points: 0, 
+      miners: {1: 0}, 
+      lastDaily: '', 
+      streak: 0,
+      level: 1,
+      exp: 0,
+      totalPoints: 0,
+      userId: tg?.initDataUnsafe?.user?.id || 'test',
+      referrals: 0
+    };
+    let els = {};
+    let autoMineInterval;
+
+    // Sound effects (base64 encoded short MP3s - replace with actual if needed)
+    const sounds = {
+      tap: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAA'), // Short click sound
+      buy: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAA'), // Success sound
+      win: new Audio('data:audio/wav;base64,UklGRp4CAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAA'), // Win jingle
+      spin: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhAA') // Spin sound
+    };
+
+    function playSound(type) {
+      if (sounds[type]) {
+        sounds[type].currentTime = 0;
+        sounds[type].play().catch(() => {}); // Ignore play errors
+      }
+    }
+
+    // Upgrades data
+    const upgrades = [
+      { id: 1, name: 'Tap Booster', desc: '+0.2 per tap', cost: 100, baseCost: 100, owned: 0, effect: () => game.tapMultiplier = (game.tapMultiplier || 1) + 0.2 },
+      { id: 2, name: 'Auto Tapper', desc: '+1 auto/sec', cost: 500, baseCost: 500, owned: 0, effect: () => game.autoTap = (game.autoTap || 0) + 1 },
+      { id: 3, name: 'Exp Booster', desc: '+20% exp gain', cost: 200, baseCost: 200, owned: 0, effect: () => game.expMultiplier = (game.expMultiplier || 1) * 1.2 }
+    ];
+
+    function init() {
+      els = {
+        loading: document.getElementById('loading'),
+        home: document.getElementById('home'),
+        points: document.getElementById('points'),
+        miners: document.getElementById('miners'),
+        minerIncome: document.getElementById('miner-income'),
+        dailyBtn: document.getElementById('daily-btn'),
+        streak: document.getElementById('streak'),
+        spinBtn: document.getElementById('spin-btn'),
+        spinResult: document.getElementById('spin-result'),
+        level: document.getElementById('level'),
+        userId: document.getElementById('user-id'),
+        upgradesList: document.getElementById('upgrades-list'),
+        leaderboardList: document.getElementById('leaderboard-list')
+      };
+
+      els.userId.innerText = game.userId;
+
+      // Load saved game
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.getItem('wienerDoge', (err, saved) => {
+          if (saved) {
+            try { game = { ...game, ...JSON.parse(saved) }; } catch(e) { console.error('Parse error:', e); }
+          }
+          finishLoading();
+        });
+        // Load leaderboard
+        tg.CloudStorage.getItem('leaderboard', (err, lb) => {
+          if (lb) leaderboardData = JSON.parse(lb);
+          updateLeaderboard();
+        });
+      } else {
+        setTimeout(finishLoading, 300);
+      }
+
+      // Start auto mining
+      startAutoMine();
+    }
+
+    function finishLoading() {
+      els.loading.style.display = 'none';
+      els.home.classList.add('active');
+      update();
+      checkDaily();
+      updateUpgrades();
+      updateLeaderboard();
+    }
+
+    function tapWiener() {
+      const gain = 0.1 * (game.tapMultiplier || 1);
+      game.points += gain;
+      game.totalPoints += gain;
+      game.exp += gain * (game.expMultiplier || 1);
+      checkLevelUp();
+      playSound('tap');
+      update(); save();
+    }
+
+    function buyMiner(lvl) {
+      const cost = 1000;
+      if (game.points >= cost) {
+        game.points -= cost;
+        game.miners[lvl] = (game.miners[lvl] || 0) + 1;
+        playSound('buy');
+        update(); save();
+      } else {
+        alert("Not enough points!");
+      }
+    }
+
+    function buyUpgrade(id) {
+      const upgrade = upgrades.find(u => u.id === id);
+      if (!upgrade || game.points < upgrade.cost) {
+        alert("Not enough points!");
+        return;
+      }
+      game.points -= upgrade.cost;
+      upgrade.owned++;
+      upgrade.cost = Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.owned));
+      upgrade.effect();
+      playSound('buy');
+      updateUpgrades();
+      update();
+      save();
+    }
+
+    function claimDaily() {
+      const today = new Date().toDateString();
+      if (game.lastDaily !== today) {
+        game.points += 10;
+        game.streak++;
+        game.lastDaily = today;
+        els.dailyBtn.disabled = true;
+        els.dailyBtn.innerText = "Claimed";
+        playSound('buy');
+        update(); save();
+      }
+    }
+
+    function checkDaily() {
+      const today = new Date().toDateString();
+      els.streak.innerText = game.streak;
+      if (game.lastDaily === today) {
+        els.dailyBtn.disabled = true;
+        els.dailyBtn.innerText = "Claimed";
+      } else {
+        els.dailyBtn.disabled = false;
+        els.dailyBtn.innerText = "Claim +10";
+      }
+    }
+
+    function doSpin() {
+      if (game.points < 100) {
+        alert("Need 100 points!");
+        return;
+      }
+      game.points -= 100;
+      playSound('spin');
+      els.spinBtn.disabled = true;
+      els.spinResult.innerText = "Spinning...";
+      update();
+
+      setTimeout(() => {
+        const win = Math.random() < 0.2 
+          ? (Math.random() < 0.25 ? 500 : 50) 
+          : 0;
+        game.points += win;
+        game.exp += win * (game.expMultiplier || 1);
+        checkLevelUp();
+        els.spinResult.innerText = win ? `+${win}!` : "No luck!";
+        if (win) playSound('win');
+        els.spinBtn.disabled = false;
+        update(); save();
+      }, 2000);
+    }
+
+    function copyReferral() {
+      const link = document.getElementById('referral-link').innerText;
+      if (tg?.showPopup) {
+        tg.showPopup({
+          title: 'Referral Link',
+          message: link,
+          buttons: [{ type: 'copy', text: 'Copy' }]
+        }, (btn) => {
+          if (btn === 'copy') {
+            navigator.clipboard.writeText(link);
+          }
+        });
+      } else {
+        alert('Link copied: ' + link);
+        navigator.clipboard.writeText(link).catch(() => {});
+      }
+    }
+
+    function update() {
+      els.points.innerText = game.points.toFixed(1);
+      const totalMiners = Object.values(game.miners).reduce((a,b) => a + b, 0);
+      els.miners.innerText = totalMiners;
+      els.minerIncome.innerText = totalMiners * 50 / 86400; // Approx per sec
+      els.level.innerText = game.level;
+    }
+
+    function updateUpgrades() {
+      els.upgradesList.innerHTML = upgrades.map(u => `
+        <div class="upgrade-item">
+          <h2>${u.name} (Owned: ${u.owned})</h2>
+          <p>${u.desc}</p>
+          <button class="btn" onclick="buyUpgrade(${u.id})" ${game.points < u.cost ? 'disabled' : ''}>Buy: ${u.cost}</button>
+        </div>
+      `).join('');
+    }
+
+    function checkLevelUp() {
+      const requiredExp = game.level * 100;
+      if (game.exp >= requiredExp) {
+        game.level++;
+        game.exp = 0;
+        alert(`Level up! Now level ${game.level}!`);
+        // Bonus points on level up
+        game.points += 50;
+        update();
+        save();
+      }
+    }
+
+    function startAutoMine() {
+      clearInterval(autoMineInterval);
+      autoMineInterval = setInterval(() => {
+        if (game.miners) {
+          const income = Object.values(game.miners).reduce((a, b) => a + b, 0) * 50 / 86400; // Daily to per sec
+          game.points += income * (game.autoTap || 0); // Use autoTap if exists
+          game.totalPoints += income * (game.autoTap || 0);
+          game.exp += income * (game.autoTap || 0) * (game.expMultiplier || 1);
+          checkLevelUp();
+          update();
+          save();
+        }
+      }, 1000);
+    }
+
+    function save() {
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.setItem('wienerDoge', JSON.stringify(game));
+        // Update leaderboard (top 10 by totalPoints)
+        updateLeaderboard();
+      }
+    }
+
+    let leaderboardData = [];
+
+    function updateLeaderboard() {
+      if (tg?.CloudStorage) {
+        tg.CloudStorage.getItem('leaderboard', (err, lb) => {
+          leaderboardData = lb ? JSON.parse(lb) : [];
+          // Add/update current user
+          const userIndex = leaderboardData.findIndex(u => u.userId === game.userId);
+          const userData = { userId: game.userId, totalPoints: game.totalPoints, level: game.level };
+          if (userIndex > -1) {
+            leaderboardData[userIndex] = userData;
+          } else {
+            leaderboardData.push(userData);
+          }
+          // Sort by totalPoints desc, top 10
+          leaderboardData.sort((a, b) => b.totalPoints - a.totalPoints);
+          leaderboardData = leaderboardData.slice(0, 10);
+          // Save back
+          tg.CloudStorage.setItem('leaderboard', JSON.stringify(leaderboardData));
+          // Render
+          renderLeaderboard();
+        });
+      } else {
+        // Mock for testing
+        leaderboardData = [{userId: game.userId, totalPoints: game.totalPoints, level: game.level}];
+        renderLeaderboard();
+      }
+    }
+
+    function renderLeaderboard() {
+      els.leaderboardList.innerHTML = leaderboardData.map((u, i) => `
+        <li ${u.userId === game.userId ? 'class="me"' : ''}>
+          #${i+1} ${u.userId} - ${u.totalPoints.toFixed(1)} pts (Lv${u.level})
+        </li>
+      `).join('');
+    }
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'upgrades') updateUpgrades();
+      if (id === 'leaderboard') updateLeaderboard();
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>      <button class="btn" onclick="showPage('refer')">Refer</button>
       <button class="btn" onclick="showPage('shop')">Shop</button>
       <button class="btn" onclick="showPage('spin')">Spin</button>
     </div>
