@@ -7,34 +7,35 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{background:#0a0a1a;color:#fff;font-family:'Comic Sans MS',sans-serif;overflow:hidden;position:relative;}
+    body{background:#0a0a1a;color:#fff;font-family:sans-serif;overflow:hidden;position:relative;}
     .page{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:20px;overflow-y:auto;}
     .page.active{display:block;}
-    h1{font-size:32px;text-align:center;margin:20px 0;text-shadow:0 0 20px #ffd700;}
-    h2{font-size:24px;text-align:center;margin:15px 0;}
-    #wiener-img{width:200px;height:200px;margin:20px auto;display:block;border-radius:50%;object-fit:cover;filter:drop-shadow(0 0 30px #ffd700);transition:0.2s;cursor:pointer;}
-    #wiener-img:active{transform:scale(0.95) rotate(5deg);}
+    h1{font-size:32px;text-align:center;margin:20px 0;color:#ffd700;text-shadow:0 0 20px #ffd700;}
+    #wiener-img{width:180px;height:180px;margin:20px auto;display:block;border-radius:50%;object-fit:cover;filter:drop-shadow(0 0 30px #ffd700);cursor:pointer;transition:0.2s;}
+    #wiener-img:active{transform:scale(0.95);}
     .stat{display:flex;justify-content:space-around;font-size:22px;margin:20px 0;background:rgba(255,215,0,0.1);padding:15px;border-radius:20px;}
-    .btn{background:linear-gradient(45deg,#ffd700,#ffed4a);color:#333;border:none;padding:15px 25px;border-radius:25px;font-size:18px;font-weight:bold;margin:10px;cursor:pointer;box-shadow:0 8px 20px rgba(255,215,0,0.4);}
+    .btn{background:#ffd700;color:#333;border:none;padding:15px 25px;border-radius:25px;font-size:18px;font-weight:bold;margin:10px;cursor:pointer;box-shadow:0 8px 20px rgba(255,215,0,0.4);}
     .btn:active{transform:scale(0.98);}
-    .btn:disabled{opacity:0.5;cursor:not-allowed;}
-    .shop-item{margin:20px 0;padding:20px;background:rgba(255,255,255,0.1);border-radius:20px;border:1px solid #ffd700;}
-    #referral-link{background:#333;color:#ffd700;padding:15px;border-radius:10px;font-size:16px;word-break:break-all;margin:10px 0;}
-    #points-earned{font-size:28px;color:#ffd700;text-shadow:0 0 10px #ffd700;}
-    #daily-streak{font-size:20px;color:#ff6b6b;}
+    .btn:disabled{opacity:0.5;}
     .nav{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:20px 0;}
-    .mining{display:flex;justify-content:center;align-items:center;gap:10px;font-size:20px;color:#4ade80;}
+    .mining{font-size:20px;color:#4ade80;text-align:center;margin:15px;}
     .particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:100;}
     .particle{font-size:40px;animation:float 1s ease-out forwards;position:absolute;}
     @keyframes float{to{transform:translateY(-100vh) rotate(360deg);opacity:0;}}
-    .spin-wheel{width:200px;height:200px;margin:30px auto;background:conic-gradient(#ff6b6b 0% 33%, #ffd700 33% 66%, #4ade80 66% 100%);border-radius:50%;position:relative;animation:spin 3s linear infinite paused;box-shadow:0 0 30px #ffd700;}
+    .spin-wheel{width:200px;height:200px;margin:30px auto;background:conic-gradient(#ff6b6b 0% 33%, #ffd700 33% 66%, #4ade80 66% 100%);border-radius:50%;animation:spin 3s linear infinite paused;box-shadow:0 0 30px #ffd700;}
     @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-    .spin-btn{margin-top:-100px;}
   </style>
 </head>
 <body>
   <div class="particles" id="particles"></div>
 
+  <!-- HOME -->
+  <div id="home" class="page active">
+    <h1>WIENER DOGE</h1>
+    <img src="https://raw.githubusercontent.com/mrdbourke/pytorch-deep-learning/main/images/00-pytorch-fundamentals-dog.jpeg" 
+         id="wiener-img" 
+         onclick="tapWiener()"
+         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjgwIiBmaWxsPSJ5ZWxsb3ciLz48dGV4dCB4PSI1MCIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9ImJsYWNrIj7wn5GBrDwvdGV4dD48L3N
   <!-- HOME -->
   <div id="home" class="page active">
     <h1>WIENER DOGE</h1>
