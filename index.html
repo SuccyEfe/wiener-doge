@@ -1,40 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wiener Kombat</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
-        body {
-            background: linear-gradient(135deg, #f4a261, #e76f51);
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-            touch-action: none;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #fff;
-        }
-        #header {
-            text-align: center;
-            padding: 15px;
-            background: rgba(0,0,0,0.2);
-            font-size: 18px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-        #score {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        #level {
-            font-size: 14px;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>WIENER DOGE</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="doge-header">🌭🐶</div>
+    <h1>WIENER DOGE</h1>
+    <p class="tagline">Much app. Very mini. Wow.</p>
+
+    <div id="user-greeting">Loading...</div>
+
+    <div class="nav-buttons">
+      <button onclick="goTo('profile.html')">🐕 Profile</button>
+      <button onclick="goTo('settings.html')">⚙️ Settings</button>
+    </div>
+
+    <button class="main-btn" id="bark-btn">BARK!</button>
+  </div>
+
+  <script>
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+
+    const user = Telegram.WebApp.initDataUnsafe.user;
+    const greeting = document.getElementById('user-greeting');
+    if (user) {
+      greeting.textContent = `Hello, ${user.first_name || 'Doge'}!`;
+    } else {
+      greeting.textContent = 'Open in Telegram to see your name!';
+    }
+
+    document.getElementById('bark-btn').onclick = () => {
+      Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      Telegram.WebApp.showAlert('WOOF WOOF! 🌭🐕');
+    };
+
+    function goTo(page) {
+      window.location.href = page;
+    }
+
+    Telegram.WebApp.enableClosingConfirmation();
+  </script>
+</body>
+</html>            font-size: 14px;
             opacity: 0.8;
         }
         #game-area {
