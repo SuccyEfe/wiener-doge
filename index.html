@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Weiner - Tap the Dachshund!</title>
+    <title>Wiener Kombat</title>
     <style>
         * {
             margin: 0;
@@ -12,29 +12,348 @@
             user-select: none;
         }
         body {
-            background: #f4a261;
-            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            font-family: 'Arial', sans-serif;
             overflow: hidden;
             touch-action: none;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
             color: #fff;
         }
         #header {
             text-align: center;
-            padding: 20px;
-            font-size: 24px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            font-size: 18px;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         #score {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        #level {
+            font-size: 14px;
+            opacity: 0.8;
         }
         #game-area {
             flex: 1;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #dachshund {
+            position: relative;
+            width: 200px;
+            height: 120px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120"><ellipse cx="100" cy="70" rx="80" ry="35" fill="%23b5651d"/><ellipse cx="50" cy="65" rx="30" ry="25" fill="%23b5651d"/><circle cx="40" cy="60" r="12" fill="%23000"/><circle cx="43" cy="60" r="4" fill="%23fff"/><circle cx="140" cy="75" r="18" fill="%23b5651d"/><ellipse cx="160" cy="80" rx="25" ry="15" fill="%23b5651d"/><rect x="20" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="45" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="70" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="95" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="120" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="145" y="90" width="20" height="20" fill="%23b5651d" rx="3"/><rect x="170" y="90" width="20" height="20" fill="%23b5651d" rx="3"/></svg>') no-repeat center;
+            background-size: contain;
+            cursor: pointer;
+            transition: transform 0.1s;
+            z-index: 10;
+        }
+        #dachshund:active {
+            transform: scale(0.95);
+        }
+        .coin {
+            position: absolute;
+            font-size: 20px;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px #000;
+            z-index: 5;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-60px); opacity: 0; }
+        }
+        #tap-effect {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 10%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: scale(0);
+            animation: tapPulse 0.3s ease-out;
+            z-index: 5;
+        }
+        @keyframes tapPulse {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        #upgrades {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-around;
+            z-index: 20;
+        }
+        .upgrade-btn {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .upgrade-btn:hover, .upgrade-btn.active {
+            background: rgba(0,0,0,0.5);
+        }
+        .upgrade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #tabs {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+        .tab-btn {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tab-btn.active {
+            background: rgba(0,0,0,0.5);
+        }
+        #tasks, #friends, #stats {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 250px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            color: #fff;
+            font-size: 12px;
+        }
+        #tasks.active, #friends.active, #stats.active {
+            display: block;
+        }
+        .task-item, .friend-item, .stat-item {
+            padding: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+        }
+        .task-item:last-child, .friend-item:last-child, .stat-item:last-child {
+            border-bottom: none;
+        }
+        #footer {
+            padding: 10px;
+            font-size: 12px;
+            text-align: center;
+            background: rgba(0,0,0,0.2);
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div id="score">0 $WIENER</div>
+        <div id="level">CEO Level 1</div>
+    </div>
+    <div id="tabs">
+        <div class="tab-btn active" data-tab="game">Game</div>
+        <div class="tab-btn" data-tab="tasks">Tasks</div>
+        <div class="tab-btn" data-tab="friends">Friends</div>
+        <div class="tab-btn" data-tab="stats">Stats</div>
+    </div>
+    <div id="game-area">
+        <div id="dachshund"></div>
+        <div id="tap-effect"></div>
+    </div>
+    <div id="upgrades">
+        <button class="upgrade-btn" id="mine-upgrade">Mine Lv.1 (Cost: 100)</button>
+        <button class="upgrade-btn" id="cooling-upgrade">Cooling Lv.1 (Cost: 150)</button>
+        <button class="upgrade-btn" id="legal-upgrade">Legal Lv.1 (Cost: 200)</button>
+    </div>
+    <div id="tasks">
+        <h3>Daily Tasks</h3>
+        <div class="task-item" data-reward="500">Join Telegram Channel (+500 $WIENER)</div>
+        <div class="task-item" data-reward="1000">Invite 1 Friend (+1000 $WIENER)</div>
+        <div class="task-item" data-reward="2000">Watch Ad (+2000 $WIENER)</div>
+    </div>
+    <div id="friends">
+        <h3>Your Friends</h3>
+        <div class="friend-item">Friend1: 1500 $WIENER</div>
+        <div class="friend-item">Friend2: 2300 $WIENER</div>
+        <p>Invite more for bonuses!</p>
+    </div>
+    <div id="stats">
+        <h3>Statistics</h3>
+        <div class="stat-item">Total Taps: <span id="total-taps">0</span></div>
+        <div class="stat-item">Total Earned: <span id="total-earned">0</span> $WIENER</div>
+        <div class="stat-item">Level: <span id="current-level">1</span></div>
+    </div>
+    <div id="footer">Wiener Kombat © 2025 | Powered by TON</div>
+
+    <script>
+        // Telegram WebApp integration
+        const tg = window.Telegram?.WebApp || {};
+        if (tg.initData) {
+            tg.ready();
+            tg.expand();
+        }
+
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const dachshund = document.getElementById('dachshund');
+        const gameArea = document.getElementById('game-area');
+        const tapEffect = document.getElementById('tap-effect');
+
+        let score = 0;
+        let totalTaps = 0;
+        let totalEarned = 0;
+        let level = 1;
+        let passiveIncome = 0;
+        let mineLevel = 1;
+        let coolingLevel = 1;
+        let legalLevel = 1;
+
+        const upgrades = {
+            mine: { level: 1, cost: 100, income: 1 },
+            cooling: { level: 1, cost: 150, income: 0 },
+            legal: { level: 1, cost: 200, income: 0 }
+        };
+
+        // Update display
+        function updateDisplay() {
+            scoreElement.textContent = Math.floor(score) + ' $WIENER';
+            levelElement.textContent = `CEO Level ${level}`;
+            document.getElementById('total-taps').textContent = totalTaps;
+            document.getElementById('total-earned').textContent = Math.floor(totalEarned);
+            document.getElementById('current-level').textContent = level;
+
+            // Update upgrade buttons
+            document.getElementById('mine-upgrade').textContent = `Mine Lv.${upgrades.mine.level} (Cost: ${upgrades.mine.cost})`;
+            document.getElementById('cooling-upgrade').textContent = `Cooling Lv.${upgrades.cooling.level} (Cost: ${upgrades.cooling.cost})`;
+            document.getElementById('legal-upgrade').textContent = `Legal Lv.${upgrades.legal.level} (Cost: ${upgrades.legal.cost})`;
+
+            // Enable/disable buttons
+            Object.keys(upgrades).forEach(key => {
+                const btn = document.getElementById(key + '-upgrade');
+                btn.disabled = score < upgrades[key].cost;
+            });
+
+            // Passive income
+            passiveIncome = (upgrades.mine.level * 1) + (upgrades.cooling.level * 2) + (upgrades.legal.level * 3);
+            score += passiveIncome / 3600; // Per second, assuming 60fps
+        }
+
+        // Tap handler
+        dachshund.addEventListener('click', (e) => {
+            const tapValue = 1 + (level * 0.1) + (upgrades.mine.level * 0.5);
+            score += tapValue;
+            totalTaps++;
+            totalEarned += tapValue;
+
+            // Haptic feedback
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            // Visual effects
+            const effect = tapEffect.cloneNode(true);
+            effect.style.left = (e.clientX - 40) + 'px';
+            effect.style.top = (e.clientY - 40) + 'px';
+            gameArea.appendChild(effect);
+            setTimeout(() => effect.remove(), 300);
+
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.textContent = '+' + Math.floor(tapValue);
+            coin.style.left = (e.clientX - 10) + 'px';
+            coin.style.top = (e.clientY - 10) + 'px';
+            document.body.appendChild(coin);
+            setTimeout(() => coin.remove(), 800);
+
+            // Level up
+            if (score > level * 1000) {
+                level++;
+            }
+
+            updateDisplay();
+        });
+
+        // Upgrade handlers
+        document.getElementById('mine-upgrade').addEventListener('click', () => buyUpgrade('mine'));
+        document.getElementById('cooling-upgrade').addEventListener('click', () => buyUpgrade('cooling'));
+        document.getElementById('legal-upgrade').addEventListener('click', () => buyUpgrade('legal'));
+
+        function buyUpgrade(type) {
+            const up = upgrades[type];
+            if (score >= up.cost) {
+                score -= up.cost;
+                up.level++;
+                up.cost = Math.floor(up.cost * 1.5);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                updateDisplay();
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('#tasks, #friends, #stats').forEach(el => el.classList.remove('active'));
+                const tab = btn.dataset.tab;
+                if (tab !== 'game') {
+                    document.getElementById(tab + 's').classList.add('active');
+                }
+            });
+        });
+
+        // Task handlers
+        document.querySelectorAll('.task-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const reward = parseInt(item.dataset.reward);
+                score += reward;
+                totalEarned += reward;
+                item.style.opacity = '0.5';
+                item.style.textDecoration = 'line-through';
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                updateDisplay();
+            });
+        });
+
+        // Game loop
+        function gameLoop() {
+            updateDisplay();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize
+        updateDisplay();
+        gameLoop();
+
+        // Auto-save (console for demo)
+        setInterval(() => {
+            console.log('Current Score:', Math.floor(score), 'Level:', level);
+            // In real app, send to backend via TG Cloud Storage or API
+        }, 10000);
+    </script>
+</body>
+</html>            flex: 1;
             width: 100%;
             position: relative;
             overflow: hidden;
