@@ -60,6 +60,165 @@
       L1: 1000 → +50/day <button class="btn" onclick="buyMiner(1)">Buy</button>
     </div>
     <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="spin" class="page">
+    <h1>Lucky Spin</h1>
+    <button class="btn" id="spin-btn" onclick="doSpin()">SPIN (100)</button>
+    <div id="spin-result" style="margin:20px;font-size:20px;color:#ffd700;"></div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <script>
+    // Hide loading when ready
+    const tg = window.Telegram?.WebApp;
+
+let game = { points: 0, miners: {1: 0}, lastDaily: '', streak: 0 };
+const els = { /* ... your elements ... */ };
+
+function init() {
+  if (tg) {
+    tg.ready();
+    if (tg.CloudStorage) {
+      tg.CloudStorage.getItem('wienerDoge', (err, saved) => {
+        if (saved) {
+          try { game = JSON.parse(saved); } catch(e) {}
+        }
+        finishLoading();
+      });
+    } else {
+      setTimeout(finishLoading, 300);
+    }
+  } else {
+    setTimeout(finishLoading, 300);
+  }
+}
+
+function finishLoading() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('home').classList.add('active');
+  update();
+  checkDaily();
+}
+
+// Start
+init();
+
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.ready();
+
+    let game = {points:0, miners:{1:0}, lastDaily:'', streak:0};
+
+    const els = {
+      points: document.getElementById('points'),
+      miners: document.getElementById('miners'),
+      dailyBtn: document.getElementById('daily-btn'),
+      streak: document.getElementById('streak'),
+      spinBtn: document.getElementById('spin-btn'),
+      spinResult: document.getElementById('spin-result')
+    };
+
+    // Load
+    if (tg?.CloudStorage) {
+      tg.CloudStorage.getItem('wienerDoge', (err, data) => {
+        if (data) game = JSON.parse(data);
+        update(); checkDaily();
+      });
+    }
+
+    function tapWiener() {
+      game.points += 0.1;
+      update(); save();
+    }
+
+    function buyMiner(lvl) {
+      const cost = 1000;
+      if (game.points >= cost) {
+        game.points -= cost;
+        game.miners[lvl] = (game.miners[lvl] || 0) + 1;
+        update(); save();
+      }
+    }
+
+    function claimDaily() {
+      const today = new Date().toDateString();
+      if (game.lastDaily !== today) {
+        game.points += 10;
+        game.streak++;
+        game.lastDaily = today;
+        els.dailyBtn.disabled = true;
+        els.dailyBtn.innerText = "Claimed";
+        update(); save();
+      }
+    }
+
+    function checkDaily() {
+      const today = new Date().toDateString();
+      els.streak.innerText = game.streak;
+      if (game.lastDaily === today) {
+        els.dailyBtn.disabled = true;
+        els.dailyBtn.innerText = "Claimed";
+      }
+    }
+
+    function doSpin() {
+      if (game.points < 100) return alert("Need 100!");
+      game.points -= 100;
+      els.spinBtn.disabled = true;
+      setTimeout(() => {
+        const win = Math.random() < 0.2 ? (Math.random() < 0.25 ? 500 : 50) : 0;
+        game.points += win;
+        els.spinResult.innerText = win ? `+${win}!` : "No luck";
+        els.spinBtn.disabled = false;
+        update(); save();
+      }, 2000);
+    }
+
+    function update() {
+      els.points.innerText = game.points.toFixed(1);
+      els.miners.innerText = Object.values(game.miners).reduce((a,b)=>a+b,0);
+    }
+
+    function save() {
+      if (tg?.CloudStorage) tg.CloudStorage.setItem('wienerDoge', JSON.stringify(game));
+    }
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // Init
+    update();
+  </script>
+</body>
+</html>
+      <button class="btn" onclick="showPage('refer')">Refer</button>
+      <button class="btn" onclick="showPage('shop')">Shop</button>
+      <button class="btn" onclick="showPage('spin')">Spin</button>
+    </div>
+  </div>
+
+  <div id="daily" class="page">
+    <h1>Daily Check-in</h1>
+    <button class="btn" id="daily-btn" onclick="claimDaily()">Claim +10</button>
+    <div>Streak: <span id="streak">0</span></div>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="refer" class="page">
+    <h1>Refer & Earn</h1>
+    <div id="referral-link">https://t.me/WienerClickerBot</div>
+    <button class="btn" onclick="alert('Link copied!')">Copy</button>
+    <button class="btn" onclick="showPage('home')">Back</button>
+  </div>
+
+  <div id="shop" class="page">
+    <h1>Shop</h1>
+    <div style="margin:10px;padding:15px;background:rgba(255,255,255,0.1);border-radius:15px;">
+      L1: 1000 → +50/day <button class="btn" onclick="buyMiner(1)">Buy</button>
+    </div>
+    <button class="btn" onclick="showPage('home')">Back</button>
   </div         onclick="tapWiener()"
          onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMDAiIGN5PSIxMDAiIHI9IjgwIiBmaWxsPSJ5ZWxsb3ciLz48dGV4dCB4PSI1MCIgeT0iMTE1IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iNDAiIGZpbGw9ImJsYWNrIj7wn5GBrDwvdGV4dD48L3N
   <!-- HOME -->
