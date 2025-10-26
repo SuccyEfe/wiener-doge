@@ -38,6 +38,197 @@
   <!-- HOME -->
   <div id="home" class="page active">
     <h1>WIENER DOGE</h1>
+    <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" id="wiener-img" onclick="tapWiener()">
+    <div class="stat">
+      <div>WIENER Points: <span id="points">0.0</span></div>
+      <div>Miners: <span id="miners">0</span></div>
+    </div>
+    <div class="mining">
+      <span>Today's Mining: </span><span id="points-earned">0.0</span>
+    </div>
+    <div class="nav">
+      <button class="btn" onclick="showPage('daily')">Daily (+10)</button>
+      <button class="btn" onclick="showPage('refer')">Refer (+50)</button>
+      <button class="btn" onclick="showPage('shop')">Shop</button>
+      <button class="btn" onclick="showPage('spin')">Lucky Spin</button>
+    </div>
+  </div>
+
+  <!-- DAILY -->
+  <div id="daily" class="page">
+    <h1>Daily Check-in</h1>
+    <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" style="width:150px;height:150px;border-radius:50%;">
+    <button class="btn" id="daily-btn" onclick="claimDaily()">Claim +10 Points!</button>
+    <div id="daily-streak">Streak: <span id="streak">0</span> days</div>
+    <button class="btn" onclick="showPage('home')">Back Home</button>
+  </div>
+
+  <!-- REFER -->
+  <div id="refer" class="page">
+    <h1>Refer & Earn</h1>
+    <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" style="width:150px;height:150px;border-radius:50%;">
+    <p>Share → +50 pts per friend!</p>
+    <div id="referral-link">Loading...</div>
+    <button class="btn" onclick="copyReferral()">Copy</button>
+    <button class="btn" onclick="shareReferral()">Share</button>
+    <button class="btn" onclick="showPage('home')">Back Home</button>
+  </div>
+
+  <!-- SHOP -->
+  <div id="shop" class="page">
+    <h1>Wiener Shop</h1>
+    <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" style="width:120px;height:120px;border-radius:50%;">
+    <div class="shop-item">
+      <strong>L1 Wiener</strong> – 1000 pts → +50/day<br>
+      <button class="btn" onclick="buyMiner(1)">Buy</button>
+    </div>
+    <div class="shop-item">
+      <strong>L2 Wiener</strong> – 5000 pts → +100/day<br>
+      <button class="btn" onclick="buyMiner(2)">Buy</button>
+    </div>
+    <div class="shop-item">
+      <strong>L3 Wiener</strong> – 10,000 pts → +200/day<br>
+      <button class="btn" onclick="buyMiner(3)">Buy</button>
+    </div>
+    <div class="shop-item">
+      <strong>L4 Wiener</strong> – 20,000 pts → +450/day<br>
+      <button class="btn" onclick="buyMiner(4)">Buy</button>
+    </div>
+    <button class="btn" onclick="showPage('home')">Back Home</button>
+  </div>
+
+  <!-- SPIN -->
+  <div id="spin" class="page">
+    <h1>Lucky Spin</h1>
+    <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" style="width:120px;height:120px;border-radius:50%;">
+    <h2>Bet 100 → Win 0/50/500</h2>
+    <div class="spin-wheel" id="wheel"></div>
+    <button class="btn spin-btn" id="spin-btn" onclick="doSpin()">SPIN</button>
+    <div id="spin-result" style="font-size:24px;margin:20px;color:#ffd700;"></div>
+    <button class="btn" onclick="showPage('home')">Back Home</button>
+  </div>
+
+  <script>
+    const tg = Telegram.WebApp;
+    tg.ready(); tg.expand();
+    const userId = tg.initDataUnsafe.user?.id || 'guest';
+    const botUsername = 'WienerClickerBot';
+
+    let game = {points:0, miners:{1:0,2:0,3:0,4:0}, lastDaily:'', streak:0, lastMineDate:''};
+
+    const els = {
+      points: document.getElementById('points'),
+      miners: document.getElementById('miners'),
+      pointsEarned: document.getElementById('points-earned'),
+      dailyBtn: document.getElementById('daily-btn'),
+      streak: document.getElementById('streak'),
+      referralLink: document.getElementById('referral-link'),
+      spinBtn: document.getElementById('spin-btn'),
+      spinResult: document.getElementById('spin-result'),
+      wheel: document.getElementById('wheel')
+    };
+
+    // Load & Init
+    tg.CloudStorage.getItem('wienerDoge', (err, data) => {
+      if (data) game = JSON.parse(data);
+      update();
+      checkDaily();
+      updateReferralLink();
+      collectMining(); // FIXED: Run on load
+    });
+
+    function tapWiener() {
+      game.points += 0.1;
+      createParticle('sparkles');
+      tg.HapticFeedback.impactOccurred('light');
+      update(); save();
+    }
+
+    function buyMiner(lvl) {
+      const cost = [0,1000,5000,10000,20000][lvl];
+      if (game.points >= cost) { game.points -= cost; game.miners[lvl]++; update(); save(); }
+    }
+
+    function claimDaily() {
+      const today = new Date().toDateString();
+      if (game.lastDaily !== today) {
+        game.points += 10;
+        game.streak = (game.lastDaily === new Date(Date.now()-86400000).toDateString()) ? game.streak + 1 : 1;
+        game.lastDaily = today;
+        els.dailyBtn.disabled = true; els.dailyBtn.innerText = "Claimed!";
+        update(); save();
+      }
+    }
+
+    function checkDaily() {
+      const today = new Date().toDateString();
+      els.streak.innerText = game.streak;
+      if (game.lastDaily === today) { els.dailyBtn.disabled = true; els.dailyBtn.innerText = "Claimed!"; }
+    }
+
+    function collectMining() {
+      const today = new Date().toDateString();
+      if (game.lastMineDate !== today) {
+        const rates = [0,50,100,200,450];
+        let earned = 0;
+        for (let i=1;i<=4;i++) earned += game.miners[i] * rates[i];
+        game.points += earned;
+        game.lastMineDate = today;
+        els.pointsEarned.innerText = earned.toFixed(1);
+        save();
+      } else els.pointsEarned.innerText = '0.0';
+      update();
+    }
+
+    function updateReferralLink() {
+      els.referralLink.innerText = `https://t.me/${botUsername}?start=ref_${userId}`;
+    }
+
+    function copyReferral() { navigator.clipboard.writeText(els.referralLink.innerText).then(() => alert("Copied!")); }
+    function shareReferral() { tg.shareUrl(els.referralLink.innerText, "Join WIENER DOGE!"); }
+
+    function doSpin() {
+      if (game.points < 100) return alert("Need 100 pts!");
+      game.points -= 100; els.spinBtn.disabled = true; els.wheel.style.animationPlayState = 'running';
+      setTimeout(() => {
+        els.wheel.style.animationPlayState = 'paused';
+        const r = Math.random();
+        const win = r < 0.05 ? 500 : r < 0.20 ? 50 : 0;
+        game.points += win;
+        els.spinResult.innerText = win ? `+${win} pts!` : "Try again!";
+        els.spinBtn.disabled = false;
+        update(); save();
+      }, 3000);
+    }
+
+    function createParticle(e) {
+      const p = document.createElement('div');
+      p.className = 'particle'; p.innerText = e;
+      p.style.left = Math.random()*80+10+'vw'; p.style.top = '70vh';
+      document.getElementById('particles').appendChild(p);
+      setTimeout(() => p.remove(), 1000);
+    }
+
+    function update() {
+      els.points.innerText = game.points.toFixed(1);
+      els.miners.innerText = Object.values(game.miners).reduce((a,b)=>a+b,0);
+    }
+
+    function save() { tg.CloudStorage.setItem('wienerDoge', JSON.stringify(game)); }
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'home') collectMining();
+    }
+
+    setInterval(save, 10000);
+    update();
+  </script>
+</body>
+    </html>
+  <!-- HOME -->
+  <div id="home" class="page active">
+    <h1>WIENER DOGE</h1>
     <img src="https://i.ibb.co/4p4Y7hZ/wiener-cosmic-dachshund.png" id="wifiener-img" onclick="tapWiener()">
     <div class="stat">
       <div>WIENER Points: <span id="points">0.0</span></div>
